@@ -1,0 +1,15 @@
+(DiffusionWorker pid=2831198) INFO 11-25 17:14:26 [diffusion_model_runner.py:448] Model loading took 21.2253 GiB and 21.259437 seconds
+(DiffusionWorker pid=2831198) INFO 11-25 17:14:27 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.text_encoder.forward took 0.453492s
+SOL_BENCH {"dit_forwards": 2, "dit_npu_seconds": 1.5625694885253907}
+(DiffusionWorker pid=2831198) INFO 11-25 17:14:29 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.diffuse took 1.593303s
+(DiffusionWorker pid=2831198) INFO 11-25 17:14:59 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.vae.decode took 30.159748s
+(DiffusionWorker pid=2831198) INFO 11-25 17:14:59 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.forward took 32.281576s
+(DiffusionWorker pid=2831198) INFO 11-25 17:14:59 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.text_encoder.forward took 0.070031s
+(DiffusionWorker pid=2831198) INFO 11-25 17:14:59 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.text_encoder.forward took 0.068502s
+SOL_BENCH {"dit_forwards": 100, "dit_npu_seconds": 418.5190544433594}
+(DiffusionWorker pid=2831198) INFO 11-25 17:21:58 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.diffuse took 419.137788s
+(DiffusionWorker pid=2831198) INFO 11-25 17:22:35 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.vae.decode took 37.175413s
+(DiffusionWorker pid=2831198) INFO 11-25 17:22:35 [diffusion_pipeline_profiler.py:41] [DiffusionPipelineProfiler] Wan22Pipeline.forward took 456.494101s
+Total generation time: 463.0707 seconds (463070.73 ms)
+Worker peak GPU memory (reserved): 26124.00 MiB (25.51 GiB)
+export_seconds=6.6691 launch_to_mp4_seconds=574.7160

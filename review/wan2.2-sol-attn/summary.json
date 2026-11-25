@@ -1,0 +1,94 @@
+{
+  "model": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+  "mindiesd_commit": "6985241966212ee36cc1f10a222e03e8154330e9",
+  "mindiesd_wheel_sha256": "4a83f38ca32b3f2f05e7498a935bbd5b0037e73493fb655a5bdc43f2702b0b16",
+  "omni_base": "a57d6d1a73c694476ae1cc1447bcd765dfd47dd7",
+  "npu": "Ascend 910B3 (physical 2)",
+  "config": {
+    "width": 1280,
+    "height": 704,
+    "frames": 121,
+    "steps": 50,
+    "seed": 1024,
+    "cfg": 5,
+    "flow_shift": 5,
+    "solver": "unipc",
+    "fps": 24,
+    "tau": 1.0,
+    "dense_steps": 4,
+    "dense_layers": 1,
+    "prompt": "A dynamic cinematic tracking shot of a red sports car accelerating rapidly and drifting around a wet mountain coastal hairpin turn at sunset. As the car enters from the far left, sweeps through the center corner kicking up bright plumes of water spray and tire smoke, and speeds away toward the right into the golden horizon, the camera pans swiftly across glistening asphalt, glowing reflections, cliffside pines, and crashing ocean waves below. Crisp 35mm film grain, vivid motion, natural lighting."
+  },
+  "observations": "One request per timed variant after engine warmup. Shared host and NPU; not an exclusive-card benchmark.",
+  "environment": {
+    "packages": {
+      "vllm": "0.34.0+empty",
+      "vllm-ascend": "0.19.1rc2.dev3635+g19c063b54",
+      "torch": "2.10.0+cpu",
+      "torch_npu": "2.10.0.post7",
+      "mindiesd": "3.1.0",
+      "diffusers": "0.42.0",
+      "transformers": "5.19.0",
+      "scikit-image": "0.26.0"
+    },
+    "weight_config_sha256": {
+      "model_index.json": "6a72faeb564b0e894aea8fc4ef27241106eb739e8584e869b61589a65473add7",
+      "transformer/config.json": "dc00d9866e72cf77db6b531aaa33be4dc7148fef9338442bd0ae9181f7075e9b",
+      "vae/config.json": "d996c340fe9a7df5d7371f76a7d8d6956f6c98256080074d8434fa5eeac11360"
+    },
+    "cann": "9.3.0",
+    "used_ops": [
+      "ascend910b laser_attention",
+      "la_preprocess",
+      "all seven ascend910b sol_attn ops"
+    ]
+  },
+  "warmup": "Engine warmup excluded from request and DiT timing, included in launch_to_mp4_s.",
+  "denominator": "Per B/head, ceil(T/128) valid query tiles times ceil(T/64) valid key blocks, including partial edge tiles.",
+  "quality_method": "Pre-MP4 FP32 RGB in [0,1], PSNR and channel-wise Gaussian SSIM (sigma 1.5, population covariance), averaged over 121 frames.",
+  "sol_exact": "Not exposed by the API of MindIE-SD PR 929 at the pinned commit.",
+  "measurements": {
+    "dense": {
+      "dit_forwards": 100,
+      "dit_npu_seconds": 418.5190544433594,
+      "model_load_s": 21.259437,
+      "text_encoder_s": 0.138533,
+      "denoise_loop_s": 419.137788,
+      "vae_decode_s": 37.175413,
+      "pipeline_forward_s": 456.494101,
+      "generation_request_s": 463.0707,
+      "mp4_export_s": 6.6691,
+      "launch_to_mp4_s": 574.716,
+      "peak_reserved_gib": 25.51,
+      "frames_decoded": 121
+    },
+    "diag": {
+      "dit_forwards": 100,
+      "dit_npu_seconds": 247.0527373046875,
+      "model_load_s": 19.748366,
+      "text_encoder_s": 0.139075,
+      "denoise_loop_s": 247.58341,
+      "vae_decode_s": 34.652754,
+      "pipeline_forward_s": 282.411634,
+      "generation_request_s": 288.0714,
+      "mp4_export_s": 6.0846,
+      "launch_to_mp4_s": 397.4515,
+      "peak_reserved_gib": 25.49,
+      "frames_decoded": 121
+    }
+  },
+  "relative_to_dense": {
+    "psnr_mean_frame_db": 21.383216849084445,
+    "psnr_global_db": 21.02599797886287,
+    "ssim_mean_frame": 0.8206964135169983
+  },
+  "route_statistics": {
+    "self_calls": 3000,
+    "sol_calls": 2668,
+    "exact": 1815256152,
+    "sol_possible": 5851116096,
+    "total_possible": 6579216000,
+    "sol_sparsity": 0.6897589926063911,
+    "whole_self_sparsity": 0.6134256640912839
+  }
+}

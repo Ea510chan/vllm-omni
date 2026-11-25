@@ -1,0 +1,7 @@
+FAILED tests/diffusion/models/wan2_2/test_wan22_stage_runtime.py::test_pruned_real_tiny_distributed_wan_vae_retains_numerics[True]
+FAILED tests/diffusion/models/wan2_2/test_wan22_stage_runtime.py::test_pruned_real_tiny_distributed_wan_vae_retains_numerics[False]
+FAILED tests/diffusion/models/wan2_2/test_wan_conditioning_cpu.py::test_real_vae_full_vs_encode_then_repeat[1-1]
+FAILED tests/diffusion/models/wan2_2/test_wan_conditioning_cpu.py::test_real_vae_full_vs_encode_then_repeat[1-3]
+FAILED tests/diffusion/models/wan2_2/test_wan_conditioning_cpu.py::test_real_vae_full_vs_encode_then_repeat[2-1]
+FAILED tests/diffusion/models/wan2_2/test_wan_conditioning_cpu.py::test_real_vae_full_vs_encode_then_repeat[2-3]
+6 failed, 19 warnings in 9.64s
