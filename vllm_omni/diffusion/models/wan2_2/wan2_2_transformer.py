@@ -3,7 +3,6 @@
 
 import math
 from collections.abc import Iterable
-from functools import lru_cache
 from typing import Any
 
 import torch
@@ -33,7 +32,7 @@ from vllm.model_executor.models.utils import (
 from vllm.sequence import IntermediateTensors
 
 from vllm_omni.diffusion.attention.backends.abstract import AttentionMetadata, VideoTokenLayout
-from vllm_omni.diffusion.attention.backends.sol_attn import SOL_MORTON_ORDER, wan_sol_layout
+from vllm_omni.diffusion.attention.backends.sol_attn import SOL_MORTON_ORDER, get_morton_indices, wan_sol_layout
 from vllm_omni.diffusion.attention.layer import Attention, ScheduleCandidate
 from vllm_omni.diffusion.distributed.parallel_state import (
     get_pipeline_parallel_world_size,
@@ -52,20 +51,6 @@ from vllm_omni.platforms import current_omni_platform
 from vllm_omni.quantization.mxfp4_config import NPUMxfp4LinearMethod
 
 logger = init_logger(__name__)
-
-
-@lru_cache(maxsize=8)
-def _morton_indices(grid: tuple[int, int, int], device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
-    """Map raster video tokens to 3D Z-order (W, H, T bits) and back."""
-    frames, height, width = grid
-    raster = torch.arange(frames * height * width, device="cpu")
-    w, h, t = raster % width, raster // width % height, raster // (height * width)
-    code = torch.zeros_like(raster)
-    for bit in range((max(grid) - 1).bit_length()):
-        for axis, coord in enumerate((w, h, t)):
-            code |= ((coord >> bit) & 1) << (3 * bit + axis)
-    order = code.argsort()
-    return order.to(device), order.argsort().to(device)
 
 
 def _morton_block_inputs(
@@ -1251,7 +1236,7 @@ class WanTransformer3DModel(nn.Module):
             attention_extra = wan_sol_layout(blocks[-1].attn1.attn)
         inverse_order = None
         if attention_extra.get(SOL_MORTON_ORDER):
-            order, inverse_order = _morton_indices(vsa_dit_seq_shape, hidden_states.device)
+            order, inverse_order = get_morton_indices(vsa_dit_seq_shape, hidden_states.device)
             hidden_states, rotary_emb, timestep_proj = _morton_block_inputs(
                 hidden_states, rotary_emb, timestep_proj, order
             )
