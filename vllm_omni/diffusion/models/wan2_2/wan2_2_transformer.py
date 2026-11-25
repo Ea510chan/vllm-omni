@@ -3,6 +3,7 @@
 
 import math
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import Any
 
 import torch
@@ -33,6 +34,7 @@ from vllm.sequence import IntermediateTensors
 
 from vllm_omni.diffusion.attention.backends.abstract import AttentionMetadata, VideoTokenLayout
 from vllm_omni.diffusion.attention.layer import Attention, ScheduleCandidate
+from vllm_omni.diffusion.config import get_current_diffusion_config_or_none
 from vllm_omni.diffusion.distributed.parallel_state import (
     get_pipeline_parallel_world_size,
     is_pipeline_first_stage,
@@ -50,6 +52,33 @@ from vllm_omni.platforms import current_omni_platform
 from vllm_omni.quantization.mxfp4_config import NPUMxfp4LinearMethod
 
 logger = init_logger(__name__)
+
+
+@lru_cache(maxsize=8)
+def _morton_indices(grid: tuple[int, int, int], device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+    """Map raster video tokens to 3D Z-order (W, H, T bits) and back."""
+    frames, height, width = grid
+    raster = torch.arange(frames * height * width, device="cpu")
+    w, h, t = raster % width, raster // width % height, raster // (height * width)
+    code = torch.zeros_like(raster)
+    for bit in range((max(grid) - 1).bit_length()):
+        for axis, coord in enumerate((w, h, t)):
+            code |= ((coord >> bit) & 1) << (3 * bit + axis)
+    order = code.argsort()
+    return order.to(device), order.argsort().to(device)
+
+
+def _morton_block_inputs(
+    hidden_states: torch.Tensor,
+    rotary_emb: tuple[torch.Tensor, torch.Tensor],
+    timestep_proj: torch.Tensor,
+    order: torch.Tensor,
+) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+    # I2V carries one timestep per video token. T2V broadcasts a per-sample timestep.
+    if timestep_proj.ndim == 4:
+        timestep_proj = timestep_proj.index_select(1, order)
+    cos, sin = rotary_emb
+    return hidden_states.index_select(1, order), (cos.index_select(1, order), sin.index_select(1, order)), timestep_proj
 
 
 class DistributedRMSNorm(nn.Module):
@@ -760,6 +789,7 @@ class WanTransformerBlock(nn.Module):
         hidden_states_mask: torch.Tensor | None = None,
         vsa_dit_seq_shape: tuple[int, int, int] | None = None,
         preserve_vsa_all_blocks: bool = False,
+        sol_morton_order: bool | None = None,
     ) -> torch.Tensor:
         if temb.ndim == 4:
             # temb: batch_size, seq_len, 6, inner_dim (wan2.2 ti2v)
@@ -781,6 +811,8 @@ class WanTransformerBlock(nn.Module):
         # 1. Self-attention
         norm_hidden_states = self.norm1(hidden_states, scale_msa, shift_msa).type_as(hidden_states)
         self_attn_extra = {}
+        if sol_morton_order is not None:
+            self_attn_extra["sol_morton_order"] = sol_morton_order
         if vsa_dit_seq_shape is not None:
             self_attn_extra["vsa_dit_seq_shape"] = vsa_dit_seq_shape
         if preserve_vsa_all_blocks:
@@ -1034,6 +1066,18 @@ class WanTransformer3DModel(nn.Module):
                 prefix="blocks",
             )
 
+        config = get_current_diffusion_config_or_none()
+        self._check_sol_layout = False
+        if config is not None:
+            profiles = [config.diffusion_attention_config]
+            if config.diffusion_attention_schedule is not None:
+                profiles.extend(config.diffusion_attention_schedule.profiles.values())
+            for profile in profiles:
+                self_spec, _ = profile.resolve_with_source("self")
+                if self_spec is not None and self_spec.sol_attn is not None:
+                    self._check_sol_layout = True
+                    break
+
         # 4. Output norm & projection — only on the last PP stage
         if is_last:
             self.norm_out = AdaLayerNorm(inner_dim, elementwise_affine=False, eps=eps)
@@ -1215,6 +1259,19 @@ class WanTransformer3DModel(nn.Module):
         # Preserve the post-patch (T, H, W) grid so VSA can partition
         # the flattened DiT sequence into spatiotemporal blocks.
         vsa_dit_seq_shape = (post_patch_num_frames, post_patch_height, post_patch_width)
+        # All Wan blocks declare the same self role. Resolve the active profile once
+        # before changing token order; other scheduled backends expect raster order.
+        sol_morton_order = None
+        inverse_order = None
+        if self._check_sol_layout:
+            _, _, spec = self.blocks[self.start_layer].attn1.attn.effective_attention()
+            if spec is not None and spec.sol_attn is not None:
+                sol_morton_order = spec.sol_attn.uses_sparse_layers(ctx.denoise_step_idx, self.end_layer)
+                if sol_morton_order:
+                    order, inverse_order = _morton_indices(vsa_dit_seq_shape, hidden_states.device)
+                    hidden_states, rotary_emb, timestep_proj = _morton_block_inputs(
+                        hidden_states, rotary_emb, timestep_proj, order
+                    )
         for block in self.blocks[self.start_layer : self.end_layer]:
             hidden_states = block(
                 hidden_states,
@@ -1224,7 +1281,11 @@ class WanTransformer3DModel(nn.Module):
                 hidden_states_mask,
                 vsa_dit_seq_shape,
                 self.preserve_vsa_all_blocks,
+                sol_morton_order,
             )
+
+        if inverse_order is not None:
+            hidden_states = hidden_states.index_select(1, inverse_order)
 
         if not is_pipeline_last_stage():
             # Non-last PP stage: hand the token sequence to the caller via IntermediateTensors.
