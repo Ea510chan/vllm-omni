@@ -10,9 +10,11 @@ from torch.nn.functional import scaled_dot_product_attention
 
 from vllm_omni.diffusion.attention.backends.abstract import AttentionMetadata
 from vllm_omni.diffusion.attention.backends.registry import DiffusionAttentionBackendEnum
-from vllm_omni.diffusion.attention.backends.sol_attn import SolAttnBackend, SolAttnImpl
+from vllm_omni.diffusion.attention.backends.sol_attn import SolAttnBackend, SolAttnImpl, wan_sol_layout
+from vllm_omni.diffusion.attention.layer import Attention
 from vllm_omni.diffusion.config import set_current_diffusion_config
 from vllm_omni.diffusion.data import AttentionConfig, AttentionSpec, OmniDiffusionConfig, SolAttnSpec
+from vllm_omni.diffusion.forward_context import set_forward_context
 from vllm_omni.diffusion.models.wan2_2.wan2_2_transformer import _morton_block_inputs, _morton_indices
 
 pytestmark = [pytest.mark.core_model, pytest.mark.diffusion, pytest.mark.cpu]
@@ -59,7 +61,13 @@ def test_sol_step_and_layer_dispatch(monkeypatch, step, layer, sparse):
     dense = Mock(side_effect=lambda q, *args: q)
     monkeypatch.setattr(impl.dense, "forward_npu", dense)
     q = torch.zeros(1, 2, 4, 128, dtype=torch.bfloat16).transpose(1, 2)
-    meta = AttentionMetadata(extra={"sol_morton_order": spec.sol_attn.uses_sparse_layers(step, 30)})
+    last_attention = Mock(spec=Attention)
+    last_impl = SolAttnImpl(
+        2, 128, 0.2, prefix="blocks.29.attn1", qkv_layout="BSND", backend_kwargs=spec.backend_kwargs()
+    )
+    last_attention.effective_attention.return_value = (last_impl, SolAttnBackend, spec)
+    with set_forward_context(denoise_step_idx=step):
+        meta = AttentionMetadata(extra=wan_sol_layout(last_attention))
     output = impl.forward_npu(q, q, q, meta)
     assert dense.call_count == int(not sparse)
     assert kernel.call_count == int(sparse)
@@ -69,6 +77,16 @@ def test_sol_step_and_layer_dispatch(monkeypatch, step, layer, sparse):
         assert kernel.call_args.kwargs == {"scale": 0.2, "tau": 1.0}
     with pytest.raises(ValueError, match="declared token order"):
         impl.forward_npu(q, q, q, AttentionMetadata())
+
+
+def test_wan_sol_layout_follows_active_backend_and_all_dense_layers():
+    last_attention = Mock(spec=Attention)
+    spec = AttentionSpec(backend="SOL_ATTN", sol_attn={"dense_layers": 30, "dense_steps": 0})
+    impl = SolAttnImpl(2, 128, 0.2, prefix="blocks.29.attn1", qkv_layout="BSND", backend_kwargs=spec.backend_kwargs())
+    last_attention.effective_attention.side_effect = [(impl, SolAttnBackend, spec), (impl.dense, None, None)]
+    with set_forward_context(denoise_step_idx=10):
+        assert wan_sol_layout(last_attention) == {"sol_morton_order": False}
+        assert wan_sol_layout(last_attention) == {}
 
 
 def test_morton_alignment_and_dense_round_trip():

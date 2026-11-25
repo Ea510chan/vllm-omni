@@ -33,8 +33,8 @@ from vllm.model_executor.models.utils import (
 from vllm.sequence import IntermediateTensors
 
 from vllm_omni.diffusion.attention.backends.abstract import AttentionMetadata, VideoTokenLayout
+from vllm_omni.diffusion.attention.backends.sol_attn import SOL_MORTON_ORDER, wan_sol_layout
 from vllm_omni.diffusion.attention.layer import Attention, ScheduleCandidate
-from vllm_omni.diffusion.config import get_current_diffusion_config_or_none
 from vllm_omni.diffusion.distributed.parallel_state import (
     get_pipeline_parallel_world_size,
     is_pipeline_first_stage,
@@ -789,7 +789,7 @@ class WanTransformerBlock(nn.Module):
         hidden_states_mask: torch.Tensor | None = None,
         vsa_dit_seq_shape: tuple[int, int, int] | None = None,
         preserve_vsa_all_blocks: bool = False,
-        sol_morton_order: bool | None = None,
+        attention_extra: dict[str, bool] | None = None,
     ) -> torch.Tensor:
         if temb.ndim == 4:
             # temb: batch_size, seq_len, 6, inner_dim (wan2.2 ti2v)
@@ -810,9 +810,7 @@ class WanTransformerBlock(nn.Module):
 
         # 1. Self-attention
         norm_hidden_states = self.norm1(hidden_states, scale_msa, shift_msa).type_as(hidden_states)
-        self_attn_extra = {}
-        if sol_morton_order is not None:
-            self_attn_extra["sol_morton_order"] = sol_morton_order
+        self_attn_extra: dict[str, object] = dict(attention_extra or {})
         if vsa_dit_seq_shape is not None:
             self_attn_extra["vsa_dit_seq_shape"] = vsa_dit_seq_shape
         if preserve_vsa_all_blocks:
@@ -1066,18 +1064,6 @@ class WanTransformer3DModel(nn.Module):
                 prefix="blocks",
             )
 
-        config = get_current_diffusion_config_or_none()
-        self._check_sol_layout = False
-        if config is not None:
-            profiles = [config.diffusion_attention_config]
-            if config.diffusion_attention_schedule is not None:
-                profiles.extend(config.diffusion_attention_schedule.profiles.values())
-            for profile in profiles:
-                self_spec, _ = profile.resolve_with_source("self")
-                if self_spec is not None and self_spec.sol_attn is not None:
-                    self._check_sol_layout = True
-                    break
-
         # 4. Output norm & projection — only on the last PP stage
         if is_last:
             self.norm_out = AdaLayerNorm(inner_dim, elementwise_affine=False, eps=eps)
@@ -1259,20 +1245,17 @@ class WanTransformer3DModel(nn.Module):
         # Preserve the post-patch (T, H, W) grid so VSA can partition
         # the flattened DiT sequence into spatiotemporal blocks.
         vsa_dit_seq_shape = (post_patch_num_frames, post_patch_height, post_patch_width)
-        # All Wan blocks declare the same self role. Resolve the active profile once
-        # before changing token order; other scheduled backends expect raster order.
-        sol_morton_order = None
+        blocks = self.blocks[self.start_layer : self.end_layer]
+        attention_extra = {}
+        if blocks and hidden_states.device.type == "npu":
+            attention_extra = wan_sol_layout(blocks[-1].attn1.attn)
         inverse_order = None
-        if self._check_sol_layout:
-            _, _, spec = self.blocks[self.start_layer].attn1.attn.effective_attention()
-            if spec is not None and spec.sol_attn is not None:
-                sol_morton_order = spec.sol_attn.uses_sparse_layers(ctx.denoise_step_idx, self.end_layer)
-                if sol_morton_order:
-                    order, inverse_order = _morton_indices(vsa_dit_seq_shape, hidden_states.device)
-                    hidden_states, rotary_emb, timestep_proj = _morton_block_inputs(
-                        hidden_states, rotary_emb, timestep_proj, order
-                    )
-        for block in self.blocks[self.start_layer : self.end_layer]:
+        if attention_extra.get(SOL_MORTON_ORDER):
+            order, inverse_order = _morton_indices(vsa_dit_seq_shape, hidden_states.device)
+            hidden_states, rotary_emb, timestep_proj = _morton_block_inputs(
+                hidden_states, rotary_emb, timestep_proj, order
+            )
+        for block in blocks:
             hidden_states = block(
                 hidden_states,
                 encoder_hidden_states,
@@ -1281,7 +1264,7 @@ class WanTransformer3DModel(nn.Module):
                 hidden_states_mask,
                 vsa_dit_seq_shape,
                 self.preserve_vsa_all_blocks,
-                sol_morton_order,
+                attention_extra,
             )
 
         if inverse_order is not None:

@@ -2,12 +2,28 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM-Omni project
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import torch
 from vllm.model_executor.models.utils import extract_layer_index
 
 from vllm_omni.diffusion.attention.backends.abstract import AttentionBackend, AttentionImpl, AttentionMetadata
-from vllm_omni.diffusion.attention.backends.flash_attn import FlashAttentionBackend
 from vllm_omni.diffusion.config import get_current_diffusion_config_or_none
+from vllm_omni.diffusion.forward_context import get_forward_context
+
+if TYPE_CHECKING:
+    from vllm_omni.diffusion.attention.layer import Attention
+
+SOL_MORTON_ORDER = "sol_morton_order"
+
+
+def wan_sol_layout(last_attention: Attention) -> dict[str, bool]:
+    """All Wan blocks share a profile. With a dense prefix, the last layer is sparse if any layer is."""
+    impl, _, _ = last_attention.effective_attention()
+    if not isinstance(impl, SolAttnImpl):
+        return {}
+    step = get_forward_context().denoise_step_idx
+    return {SOL_MORTON_ORDER: not impl.dense_layer and step is not None and step >= impl.dense_steps}
 
 
 class SolAttnBackend(AttentionBackend):
@@ -72,7 +88,10 @@ class SolAttnImpl(AttentionImpl[AttentionMetadata]):
         options = backend_kwargs or {}
         self.tau = options.get("tau", 1.0)
         self.scale = softmax_scale
+        self.dense_steps = options.get("dense_steps", 4)
         self.dense_layer = extract_layer_index(prefix) < options.get("dense_layers", 1)
+        from vllm_omni.diffusion.attention.backends.flash_attn import FlashAttentionBackend
+
         self.dense = FlashAttentionBackend.get_impl_cls()(
             num_heads=num_heads, head_size=head_size, softmax_scale=softmax_scale, qkv_layout=qkv_layout
         )
@@ -84,13 +103,9 @@ class SolAttnImpl(AttentionImpl[AttentionMetadata]):
         value: torch.Tensor,
         attn_metadata: AttentionMetadata | None = None,
     ) -> torch.Tensor:
-        if (
-            attn_metadata is None
-            or "sol_morton_order" not in attn_metadata.extra
-            or attn_metadata.attn_mask is not None
-        ):
+        if attn_metadata is None or SOL_MORTON_ORDER not in attn_metadata.extra or attn_metadata.attn_mask is not None:
             raise ValueError("SOL_ATTN needs an unmasked Wan video token sequence with a declared token order.")
-        if self.dense_layer or not attn_metadata.extra["sol_morton_order"]:
+        if self.dense_layer or not attn_metadata.extra[SOL_MORTON_ORDER]:
             return self.dense.forward_npu(query, key, value, attn_metadata)
         from mindiesd import sol_attn
 
