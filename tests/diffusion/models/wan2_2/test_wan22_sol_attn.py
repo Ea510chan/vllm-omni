@@ -10,12 +10,17 @@ from torch.nn.functional import scaled_dot_product_attention
 
 from vllm_omni.diffusion.attention.backends.abstract import AttentionMetadata
 from vllm_omni.diffusion.attention.backends.registry import DiffusionAttentionBackendEnum
-from vllm_omni.diffusion.attention.backends.sol_attn import SolAttnBackend, SolAttnImpl, wan_sol_layout
+from vllm_omni.diffusion.attention.backends.sol_attn import (
+    SolAttnBackend,
+    SolAttnImpl,
+    get_morton_indices,
+    wan_sol_layout,
+)
 from vllm_omni.diffusion.attention.layer import Attention
 from vllm_omni.diffusion.config import set_current_diffusion_config
 from vllm_omni.diffusion.data import AttentionConfig, AttentionSpec, OmniDiffusionConfig, SolAttnSpec
 from vllm_omni.diffusion.forward_context import set_forward_context
-from vllm_omni.diffusion.models.wan2_2.wan2_2_transformer import _morton_block_inputs, _morton_indices
+from vllm_omni.diffusion.models.wan2_2.wan2_2_transformer import _morton_block_inputs
 
 pytestmark = [pytest.mark.core_model, pytest.mark.diffusion, pytest.mark.cpu]
 
@@ -91,7 +96,9 @@ def test_wan_sol_layout_follows_active_backend_and_all_dense_layers():
 
 def test_morton_alignment_and_dense_round_trip():
     grid = (2, 2, 3)
-    order, inverse = _morton_indices(grid, torch.device("cpu"))
+    indices = get_morton_indices(grid, torch.device("cpu"))
+    assert get_morton_indices(grid, torch.device("cpu")) is indices
+    order, inverse = indices
     assert order.tolist() == [0, 1, 3, 4, 6, 7, 9, 10, 2, 5, 8, 11]
     assert torch.equal(order[inverse], torch.arange(12))
     generator = torch.Generator().manual_seed(17)

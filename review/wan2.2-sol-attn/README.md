@@ -29,3 +29,9 @@ Codex assisted with implementation, tests, documentation and an independent agen
 - [168 tests passed](refactor-tests.log), including the real two-step Wan generation case, dense-prefix boundaries, attention configuration, Morton round trip and Wan scheduled-attention compile tests. All [applicable pre-commit hooks passed](refactor-precommit.log).
 - A second 832 × 480, 17-frame generation used CFG 5, seed 1024 and a service profile selecting Sol only at zero-based step 1 (tau 1, dense_steps 0, dense_layers 1). Each step ran two DiT forwards. The [observed provider calls and layout requests](schedule-routes.log) were 0, 29 and 0 Sol calls per forward and 0, 1 and 0 Morton index requests. The output MP4 decoded to 17 frames.
 - An independent Codex review checked the empty-stage guard, dense baseline, dense-only layers and active schedule selection. Its local type-annotation suggestion was applied. Human review and DCO sign-off are pending.
+
+## Morton index cache
+
+[Feature commit](https://github.com/Ea510chan/vllm-omni/commit/758442d34a9b235c307afba124e693eec65c67bd) moves the index generator and its eight-entry cache into the Sol backend. Wan applies the token order around the block stack and constructs independent metadata for each block. An independent Codex review confirmed the permutation algorithm and cache key are unchanged.
+
+[168 tests passed](morton-move-tests.log), including a cache-reuse assertion and the 910B3 end-to-end case. [Pre-commit checks passed](morton-move-precommit.log). The three-step dense/diag/dense experiment reproduced the six calls in the [previous routing trace](schedule-routes.log). The 17 decoded RGB24 frames matched the previous output byte for byte (SHA-256 `c2011a6d9bf209c5e7d1339a889f1270a0581c34b60909ca9abcaf498d2fcc67`).

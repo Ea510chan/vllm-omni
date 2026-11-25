@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM-Omni project
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import torch
@@ -15,6 +16,20 @@ if TYPE_CHECKING:
     from vllm_omni.diffusion.attention.layer import Attention
 
 SOL_MORTON_ORDER = "sol_morton_order"
+
+
+@lru_cache(maxsize=8)
+def get_morton_indices(grid: tuple[int, int, int], device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+    """Map raster video tokens to 3D Z-order (W, H, T bits) and back."""
+    frames, height, width = grid
+    raster = torch.arange(frames * height * width, device="cpu")
+    w, h, t = raster % width, raster // width % height, raster // (height * width)
+    code = torch.zeros_like(raster)
+    for bit in range((max(grid) - 1).bit_length()):
+        for axis, coord in enumerate((w, h, t)):
+            code |= ((coord >> bit) & 1) << (3 * bit + axis)
+    order = code.argsort()
+    return order.to(device), order.argsort().to(device)
 
 
 def wan_sol_layout(last_attention: Attention) -> dict[str, bool]:
