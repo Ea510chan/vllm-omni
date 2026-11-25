@@ -1,6 +1,6 @@
 # Wan2.2 TI2V-5B Sol-Attn review evidence
 
-[Feature commit](https://github.com/Ea510chan/vllm-omni/commit/b1bba59fbae9e6d6c16c99a3ca751160da5c3ef8) · [Reproduction commands](../../docs/user_guide/diffusion/attention_backends/sol_attn.md) · [Independent agent review](agent-review.md)
+[50-step benchmark commit](https://github.com/Ea510chan/vllm-omni/commit/b1bba59fbae9e6d6c16c99a3ca751160da5c3ef8) · [Reproduction commands](../../docs/user_guide/diffusion/attention_backends/sol_attn.md) · [Independent agent review](agent-review.md)
 
 The single-card comparison used a shared Ascend 910B3 with BF16, 1280 × 704, 121 frames, 50 UniPC steps, CFG 5 and seed 1024. Sol used diagonal thresholding at tau 1.0. The first four steps and first layer stayed dense. MindIE-SD [PR 929](https://gitcode.com/Ascend/MindIE-SD/pull/929) was tested at commit `6985241966212ee36cc1f10a222e03e8154330e9`.
 
@@ -20,3 +20,12 @@ Timing used one measured request per mode after warm-up. A separate run measured
 - [Focused tests including the 910B3 end-to-end case](review-tests.log) and [pre-commit checks](review-precommit.log). In the broader suite [six CPU VAE cases failed](pytest-wan.log) and [reproduced on the base revision](baseline-six.log).
 
 Codex assisted with implementation, tests, documentation and an independent agent review. Human review and DCO sign-off are pending.
+
+
+## Routing refactor
+
+[Refactored feature commit](https://github.com/Ea510chan/vllm-omni/commit/a001cc8544ef8c5051233ca5a746ee70afa35f75). The 50-step estimates above come from the earlier commit. This revision was validated with focused tests and a separate three-step routing probe on one Ascend 910B3.
+
+- [168 tests passed](refactor-tests.log), including the real two-step Wan generation case, dense-prefix boundaries, attention configuration, Morton round trip and Wan scheduled-attention compile tests. All [applicable pre-commit hooks passed](refactor-precommit.log).
+- A second 832 × 480, 17-frame generation used CFG 5, seed 1024 and a service profile selecting Sol only at zero-based step 1 (tau 1, dense_steps 0, dense_layers 1). Each step ran two DiT forwards. The [observed provider calls and layout requests](schedule-routes.log) were 0, 29 and 0 Sol calls per forward and 0, 1 and 0 Morton index requests. The output MP4 decoded to 17 frames.
+- An independent Codex review checked the empty-stage guard, dense baseline, dense-only layers and active schedule selection. Its local type-annotation suggestion was applied. Human review and DCO sign-off are pending.

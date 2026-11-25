@@ -1,0 +1,29 @@
+........................................................................ [ 42%]
+........................................................................ [ 85%]
+........................                                                 [100%]
+=============================== warnings summary ===============================
+../.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/triton/language/extra/cann/extension/math_ops.py:13
+  <workspace>/.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/triton/language/extra/cann/extension/math_ops.py:13: FutureWarning: triton.language.extra.cann.extension.atan2 is deprecated and will be removed in the next release; use triton.language.extra.cann.libdevice.atan2 instead.
+    @_deprecated(replacement="triton.language.extra.cann.libdevice.atan2")
+
+../.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/triton/language/extra/cann/extension/math_ops.py:35
+  <workspace>/.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/triton/language/extra/cann/extension/math_ops.py:35: FutureWarning: triton.language.extra.cann.extension.isfinited is deprecated and will be removed in the next release; use triton.language.extra.cann.libdevice.isfinited instead.
+    @_deprecated(replacement="triton.language.extra.cann.libdevice.isfinited")
+
+../.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/triton/language/extra/cann/extension/math_ops.py:49
+  <workspace>/.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/triton/language/extra/cann/extension/math_ops.py:49: FutureWarning: triton.language.extra.cann.extension.finitef is deprecated and will be removed in the next release; use triton.language.extra.cann.libdevice.finitef instead.
+    @_deprecated(replacement="triton.language.extra.cann.libdevice.finitef")
+
+../.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/torch/jit/_script.py:362: 14 warnings
+  <workspace>/.environments/vllm-omni-npu/conda/lib/python3.12/site-packages/torch/jit/_script.py:362: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/diffusion/attention/test_attention_config.py::TestOmniDiffusionConfigAttentionParsing::test_diffusion_attention_backend_sets_default
+tests/diffusion/attention/test_attention_config.py::TestOmniDiffusionConfigAttentionParsing::test_diffusion_attention_backend_auto_means_platform_default
+tests/diffusion/attention/test_attention_config.py::TestOmniDiffusionConfigAttentionParsing::test_diffusion_attention_backend_and_default_are_mutually_exclusive
+  <workspace>/vllm-omni/vllm_omni/diffusion/data.py:2059: FutureWarning: Diffusion config field 'diffusion_attention_backend' is deprecated; use 'diffusion_attention_config'.
+    config_kwargs = normalize_omni_diffusion_kwargs(raw_kwargs)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--- Running Summary
+168 passed, 20 warnings in 134.83s (0:02:14)

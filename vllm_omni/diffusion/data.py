@@ -2488,9 +2488,6 @@ class SolAttnSpec:
             if type(value) is not int or value < 0:
                 raise ValueError(f"sol_attn.{name} must be a nonnegative integer")
 
-    def uses_sparse_layers(self, step: int | None, num_layers: int) -> bool:
-        return step is not None and step >= self.dense_steps and num_layers > self.dense_layers
-
 
 @dataclass
 class AttentionSpec:
