@@ -1,5 +1,7 @@
 # Wan2.2 TI2V-5B Sol-Attn review evidence
 
+[50-step remeasurement on the Morton-cache revision](morton-50step/README.md)
+
 [50-step benchmark commit](https://github.com/Ea510chan/vllm-omni/commit/b1bba59fbae9e6d6c16c99a3ca751160da5c3ef8) · [Reproduction commands](../../docs/user_guide/diffusion/attention_backends/sol_attn.md) · [Independent agent review](agent-review.md)
 
 The single-card comparison used a shared Ascend 910B3 with BF16, 1280 × 704, 121 frames, 50 UniPC steps, CFG 5 and seed 1024. Sol used diagonal thresholding at tau 1.0. The first four steps and first layer stayed dense. MindIE-SD [PR 929](https://gitcode.com/Ascend/MindIE-SD/pull/929) was tested at commit `6985241966212ee36cc1f10a222e03e8154330e9`.

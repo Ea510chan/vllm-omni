@@ -1,0 +1,15 @@
+Model loading took 21.2253 GiB and 22.870253 seconds
+Wan22Pipeline.text_encoder.forward took 0.461930s
+SOL_BENCH {"dit_forwards": 2, "dit_npu_seconds": 1.5886252670288086}
+Wan22Pipeline.diffuse took 1.620597s
+Wan22Pipeline.vae.decode took 29.997387s
+Wan22Pipeline.forward took 32.153052s
+Wan22Pipeline.text_encoder.forward took 0.069404s
+Wan22Pipeline.text_encoder.forward took 0.068106s
+SOL_BENCH {"dit_forwards": 100, "dit_npu_seconds": 218.04086865234376}
+Wan22Pipeline.diffuse took 218.426435s
+Wan22Pipeline.vae.decode took 30.070406s
+Wan22Pipeline.forward took 248.661177s
+Total generation time: 251.8266 seconds (251826.63 ms)
+Worker peak GPU memory (reserved): 26098.00 MiB (25.49 GiB)
+export_seconds=6.6097 launch_to_mp4_seconds=371.7924

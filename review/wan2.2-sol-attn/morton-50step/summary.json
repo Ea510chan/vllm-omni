@@ -1,0 +1,137 @@
+{
+  "model": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+  "mindiesd_commit": "6985241966212ee36cc1f10a222e03e8154330e9",
+  "mindiesd_wheel_sha256": "4a83f38ca32b3f2f05e7498a935bbd5b0037e73493fb655a5bdc43f2702b0b16",
+  "omni_base": "a57d6d1a73c694476ae1cc1447bcd765dfd47dd7",
+  "npu": "Ascend 910B3 (physical 2)",
+  "config": {
+    "width": 1280,
+    "height": 704,
+    "frames": 121,
+    "steps": 50,
+    "seed": 1024,
+    "cfg": 5,
+    "flow_shift": 5,
+    "solver": "unipc",
+    "fps": 24,
+    "tau": 1.0,
+    "dense_steps": 4,
+    "dense_layers": 1,
+    "prompt": "A dynamic cinematic tracking shot of a red sports car accelerating rapidly and drifting around a wet mountain coastal hairpin turn at sunset. As the car enters from the far left, sweeps through the center corner kicking up bright plumes of water spray and tire smoke, and speeds away toward the right into the golden horizon, the camera pans swiftly across glistening asphalt, glowing reflections, cliffside pines, and crashing ocean waves below. Crisp 35mm film grain, vivid motion, natural lighting."
+  },
+  "observations": "One request per timed variant after engine warmup. Shared host and NPU; not an exclusive-card benchmark.",
+  "environment": {
+    "packages": {
+      "vllm": "0.34.0+empty",
+      "vllm-ascend": "0.19.1rc2.dev3635+g19c063b54",
+      "torch": "2.10.0+cpu",
+      "torch_npu": "2.10.0.post7",
+      "mindiesd": "3.1.0",
+      "diffusers": "0.42.0",
+      "transformers": "5.19.0",
+      "scikit-image": "0.26.0"
+    },
+    "weight_config_sha256": {
+      "model_index.json": "6a72faeb564b0e894aea8fc4ef27241106eb739e8584e869b61589a65473add7",
+      "transformer/config.json": "dc00d9866e72cf77db6b531aaa33be4dc7148fef9338442bd0ae9181f7075e9b",
+      "vae/config.json": "d996c340fe9a7df5d7371f76a7d8d6956f6c98256080074d8434fa5eeac11360"
+    },
+    "cann": "9.3.0",
+    "used_ops": [
+      "ascend910b laser_attention",
+      "la_preprocess",
+      "all seven ascend910b sol_attn ops"
+    ]
+  },
+  "warmup": "Engine warmup excluded from request and DiT timing, included in launch_to_mp4_s.",
+  "denominator": "Per B/head, ceil(T/128) valid query tiles times ceil(T/64) valid key blocks, including partial edge tiles.",
+  "quality_method": "Pre-MP4 FP32 RGB in [0,1], PSNR and channel-wise Gaussian SSIM (sigma 1.5, population covariance), averaged over 121 frames.",
+  "sol_exact": "Not exposed by the API of MindIE-SD PR 929 at the pinned commit.",
+  "measurements": {
+    "dense": {
+      "dit_forwards": 100,
+      "dit_npu_seconds": 385.047484375,
+      "model_load_s": 19.681072,
+      "text_encoder_s": 0.136577,
+      "denoise_loop_s": 385.467396,
+      "vae_decode_s": 30.223769,
+      "pipeline_forward_s": 415.853667,
+      "generation_request_s": 419.2204,
+      "mp4_export_s": 6.0641,
+      "launch_to_mp4_s": 528.0551,
+      "peak_reserved_gib": 25.51,
+      "frames_decoded": 121
+    },
+    "diag": {
+      "dit_forwards": 100,
+      "dit_npu_seconds": 218.04086865234376,
+      "model_load_s": 22.870253,
+      "text_encoder_s": 0.13751,
+      "denoise_loop_s": 218.426435,
+      "vae_decode_s": 30.070406,
+      "pipeline_forward_s": 248.661177,
+      "generation_request_s": 251.8266,
+      "mp4_export_s": 6.6097,
+      "launch_to_mp4_s": 371.7924,
+      "peak_reserved_gib": 25.49,
+      "frames_decoded": 121
+    }
+  },
+  "relative_to_dense": {
+    "psnr_mean_frame_db": 21.383216849084445,
+    "psnr_global_db": 21.02599797886287,
+    "ssim_mean_frame": 0.8206964135169983
+  },
+  "route_statistics": {
+    "self_calls": 3000,
+    "sol_calls": 2668,
+    "exact": 1815256152,
+    "sol_possible": 5851116096,
+    "total_possible": 6579216000,
+    "sol_sparsity": 0.6897589926063911,
+    "whole_self_sparsity": 0.6134256640912839
+  },
+  "diag_routing_capture": {
+    "decoded_rgb24_sha256": {
+      "diag-timed": "d9aca958fe78b51f2287ab57b6ed294e1ac679046e2ee4600950d9d3af71d515",
+      "diag-routing": "d9aca958fe78b51f2287ab57b6ed294e1ac679046e2ee4600950d9d3af71d515"
+    },
+    "matches_timed": true
+  },
+  "omni_feature_commit": "758442d34a9b235c307afba124e693eec65c67bd",
+  "omni_feature_tree": "091aa1a8d4654097cf9c44a1bcf3613b38649da9",
+  "speedup": {
+    "dit_npu_seconds": 1.7659418014378796,
+    "generation_request_s": 1.6647185007461482,
+    "launch_to_mp4_s": 1.4202955735512615
+  },
+  "prior_comparison": {
+    "feature_commit": "b1bba59fbae9e6d6c16c99a3ca751160da5c3ef8",
+    "outputs": {
+      "dense": {
+        "previous_npy_sha256": "56c756d0e03bba782a96d8fcb800d65d068a5750c41a33a589f3b228de7193c7",
+        "current_npy_sha256": "56c756d0e03bba782a96d8fcb800d65d068a5750c41a33a589f3b228de7193c7",
+        "identical": true
+      },
+      "diag": {
+        "previous_npy_sha256": "87fe51588ec127d98ec24691453643a9c2dc528304ee6b8860fbf82619af5098",
+        "current_npy_sha256": "87fe51588ec127d98ec24691453643a9c2dc528304ee6b8860fbf82619af5098",
+        "identical": true
+      }
+    },
+    "same_route_counts": true,
+    "same_quality": true,
+    "timing_delta_seconds": {
+      "dense": {
+        "dit_npu_seconds": -33.47157006835937,
+        "generation_request_s": -43.850300000000004,
+        "launch_to_mp4_s": -46.66089999999997
+      },
+      "diag": {
+        "dit_npu_seconds": -29.011868652343736,
+        "generation_request_s": -36.24479999999997,
+        "launch_to_mp4_s": -25.659100000000024
+      }
+    }
+  }
+}
