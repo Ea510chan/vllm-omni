@@ -1,0 +1,24 @@
+{
+  "packages": {
+    "vllm": "0.34.0+empty",
+    "vllm-ascend": "0.19.1rc2.dev3635+g19c063b54",
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0.post7",
+    "mindiesd": "3.1.0",
+    "diffusers": "0.42.0",
+    "transformers": "5.19.0",
+    "scikit-image": "0.26.0"
+  },
+  "model_path": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+  "weight_config_sha256": {
+    "model_index.json": "6a72faeb564b0e894aea8fc4ef27241106eb739e8584e869b61589a65473add7",
+    "transformer/config.json": "dc00d9866e72cf77db6b531aaa33be4dc7148fef9338442bd0ae9181f7075e9b",
+    "vae/config.json": "d996c340fe9a7df5d7371f76a7d8d6956f6c98256080074d8434fa5eeac11360"
+  },
+  "cann": "9.3.0",
+  "used_ops": [
+    "ascend910b laser_attention",
+    "la_preprocess",
+    "all seven ascend910b sol_attn ops"
+  ]
+}

@@ -1,5 +1,7 @@
 # Wan2.2 TI2V-5B Sol-Attn review evidence
 
+[Full dense-prefix sweep, card-6 retests, results card and generated videos](dense-step-sweep/README.md)
+
 [50-step remeasurement on the Morton-cache revision](morton-50step/README.md)
 
 [50-step benchmark commit](https://github.com/Ea510chan/vllm-omni/commit/b1bba59fbae9e6d6c16c99a3ca751160da5c3ef8) · [Reproduction commands](../../docs/user_guide/diffusion/attention_backends/sol_attn.md) · [Independent agent review](agent-review.md)
