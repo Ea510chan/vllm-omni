@@ -1,13 +1,21 @@
-# Wan2.2 Sol-Attn 独立 agent review
+# Independent agent review of Wan2.2 Sol-Attn
 
-2026-11-25，审查分支为 `features/wan2.2-sol-attn`，基线为 `a57d6d1a7`。独立审查覆盖了工作区内的跟踪文件和新增文件。终审的 10 个文件内容指纹为 `90cc1a697158937d9a8571f7bea718733aaa83dabfa9ecb781bb7a2856413efc`。
+On 2026-11-25, the independent review covered tracked and newly added files on
+`features/wan2.2-sol-attn` against base `a57d6d1a7`. The final review covered
+10 files with content fingerprint `90cc1a697158937d9a8571f7bea718733aaa83dabfa9ecb781bb7a2856413efc`.
 
-| 初审发现 | 处理结果 |
+| Initial finding | Resolution |
 | --- | --- |
-| MindIE-SD 仅支持 BF16。显式选择 FP16 时，原实现可能先完成 dense 步，到第一次 Sol 调用才报错。 | 改为初始化时拒绝不兼容的 dtype，添加 FP16 回归单测。 |
-| 两步真机样例依赖仓库外脚本。 | 在现有离线测试中添加单卡 A2 用例，配置第一步 dense、第二步启用 Sol，并检查输出视频的形状、有限值和像素变化。 |
-| 文档省略帧数等参数，使用 CLI 默认值无法复现 121 帧实验。 | 在 Sol 使用说明中给出 dense 和 diag 并列命令，明确分辨率、帧数、种子、CFG、模型输入和算子提交。 |
+| MindIE-SD Sol supports BF16. With FP16 selected, the previous implementation could finish the dense prefix and fail on the first Sol call. | Reject incompatible dtypes during initialization and cover FP16 with a regression test. |
+| The two-step hardware example depended on an external script. | Add a single-A2 case to the existing offline test. The first step uses dense attention and the second enables Sol. Check the output shape, finite values and pixel variation. |
+| The documented CLI defaults did not reproduce the 121-frame experiment. | Provide paired dense and diag commands with explicit resolution, frame count, seed, CFG, model input and operator revision. |
 
-复核结论为可以进入人工审阅和 Draft 阶段。两步用例验证生成产物；实际 Sol 调用数来自固定输入的 50 步独立路由采集。50 步延时是共享 910B3 上每组一个样本的观测值。测试执行记录见同目录的 `review-tests.log` 和 `review-precommit.log`，性能与画质见 `summary.json`。
+The follow-up review found the changes ready for human review and a draft PR.
+The two-step test checks the generated output. Actual Sol call counts come from
+a separate 50-step routing run with fixed inputs. The 50-step latency results use
+one timed observation per configuration on a shared 910B3. See the [test log](review-tests.log),
+[pre-commit log](review-precommit.log) and [performance and quality measurements](summary.json).
 
-人工审阅、DCO 签署和上游 CI 由贡献者及上游提交流程完成。当前集成对应 MindIE-SD PR 929 的 `6985241966212ee36cc1f10a222e03e8154330e9`。
+At the time of this review, human review, DCO sign-off and upstream CI were
+subsequent steps. The integration used MindIE-SD PR 929 at
+`6985241966212ee36cc1f10a222e03e8154330e9`.

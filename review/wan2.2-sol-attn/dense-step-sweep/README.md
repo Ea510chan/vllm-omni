@@ -12,6 +12,12 @@
 
 The default used its [same-card Flash reference](videos/flash-default-run.mp4) of **419.22 s**. The fallback used the sweep reference of **414.77 s** and matched all uncompressed RGB values. The default benchmark ran on a shared host and NPU. [Default pair and routing results](default-sol.json)
 
+## Generated output comparison
+
+![Matched frames 1, 61 and 121 from FlashAttention and default Sol diag](flash-vs-sol-frames.png)
+
+Both rows use the same prompt and seed (1024). The top row shows FlashAttention and the bottom row shows Sol diag with four initial dense steps. Frames are numbered from one and sampled from the archived MP4s. The quality metrics above use the uncompressed outputs. [Synchronized comparison video (Flash left, Sol right)](../dense-vs-diag.mp4)
+
 ## Dense-prefix ablation
 
 The 11 configurations vary only the dense step prefix, with one dense layer, tau 1.0, 50 UniPC steps, 1280 × 704, 121 frames, 24 fps, CFG 5, flow shift 5 and seed 1024. Each timing covers one measured request after warm-up. Timing and routing used separate processes. The sweep uses a single Flash reference on card 5 for both speed and quality. Cases ran on cards 5 and 6.
